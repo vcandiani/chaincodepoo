@@ -1,3 +1,5 @@
+import java.lang.Math;
+import java.util.Vector;
 import java.io.File;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -10,10 +12,15 @@ import javax.imageio.ImageIO;
 * @author Vinicius Candiani - nUSP 8551910
 */
 public class ChainCodes{
+	private static int[] sumCol = {1, 1, 0, -1, -1, -1, 0, 1};
+	private static int[] sumRow = {0, 1, 1, 1, 0, -1, -1, -1};
 	private int initPoint;
-	private int width;
-	private int height;
+	private int objWidth;
+	private int objHeight;
+	private int imgHeight;
+	private int imgWidth;
 	private int nPoints;
+	private Vector<Integer> chain;
 	private double length;
 	private int[][] imgMatrix;
 
@@ -24,7 +31,28 @@ public class ChainCodes{
 	* @param img - imagem a ser analisada para gerar o chain code.
 	*/
 	public ChainCodes(BufferedImage img){
+		chain = new Vector<Integer>(0, 1);
 		imgMatrix = convertToMatrix(img);
+		length = 0;
+		int col = initPoint % imgWidth;
+		int row = (initPoint-col)/imgWidth;
+		int dir = 0;
+		do{
+			if(imgMatrix[row + sumRow[dir]][col + sumCol[dir]] < 255){
+				int i;
+				for(i = (dir-1+8)%8; i != dir && imgMatrix[row + sumRow[i]][col + sumCol[i]] < 255; i = (i-1+8)%8);
+				dir = (i+1)%8;
+			}else{
+				int i;
+				for(i = (dir+1)%8; i != dir && imgMatrix[row + sumRow[i]][col + sumCol[i]] == 255; i = (i+1)%8);
+				dir = i;
+			}
+			chain.add(dir);
+			length += (dir%2 == 0)? 1 : Math.sqrt(2);
+			col += sumCol[dir];
+			row += sumRow[dir];
+		}while(((imgWidth * row) + col) != initPoint);
+		nPoints = chain.capacity();
 	}
 
 	/**
@@ -35,39 +63,80 @@ public class ChainCodes{
 	*/
 	private int[][] convertToMatrix(BufferedImage img){
 		boolean found = false;
-		height = img.getHeight();
-		width = img.getWidth();
-		int[][] matrix = new int[height][width];
+		int rowMax, rowMin, colMax, colMin;
+		imgHeight = img.getHeight();
+		imgWidth = img.getWidth();
+		rowMin = imgHeight;
+		rowMax = 0;
+		colMin = imgWidth;
+		colMax = 0;
+		int[][] matrix = new int[imgHeight][imgWidth];
 
-		for(int row = 0; row < height; row++){
-			for(int col = 0; col < width; col++){
+		for(int row = 0; row < imgHeight; row++){
+			for(int col = 0; col < imgWidth; col++){
 				matrix[row][col] =  (img.getRGB(col, row) & 0xff);
-				if(!found && matrix[row][col] < 255){
-					found = true;
-					initPoint = (width * row) + col;
+				if(matrix[row][col] < 255){
+					if(!found){
+						found = true;
+						initPoint = (imgWidth * row) + col;
+					}
+					if(row < rowMin)
+						rowMin = row;
+					if(row > rowMax)
+						rowMax = row;
+					if(col < colMin)
+						colMin = col;
+					if(col > colMax)
+						colMax = col;
 				}
 			}
 		}
+		objWidth = colMax - colMin + 1;
+		objHeight = rowMax - rowMin + 1;
 
 		return matrix;
 	}
 
 	public void printMatrix(){
-		for(int i = 0; i < height; i++){
-			for(int j = 0; j < width; j++){
-				if(imgMatrix[i][j] > 0)
-					System.out.print(" ");
-				else
+		for(int i = 0; i < imgHeight; i++){
+			for(int j = 0; j < imgWidth; j++){
+				if(imgMatrix[i][j] < 255)
 					System.out.print(".");
+				else
+					System.out.print(" ");
 			}
 			System.out.println("");
 		}
 	}
 
+	public int getInitPoint(){
+		return initPoint;
+	}
+
+	public int getObjWidth(){
+		return objWidth;
+	}
+
+	public int getObjHeight(){
+		return objHeight;
+	}
+
+	public int getNPoints(){
+		return nPoints;
+	}
+
+	public double getLength(){
+		return length;
+	}
+
+	public String getChain(){
+		return chain.toString();
+	}
+
 	public static void main(String[] args){
 		File n = null;
 		try{
-			n = new File("./utils/aform.png");
+			n = new File("./utils/circulo.png");
 		}catch(NullPointerException e){
 			System.out.println(e.getMessage());
 			return;
@@ -84,6 +153,10 @@ public class ChainCodes{
 		System.out.println("obteve a imagem");
 
 		ChainCodes code = new ChainCodes(image);
-		code.printMatrix();
+		System.out.println("initPoint: " + code.getInitPoint());
+		System.out.println("width: " + code.getObjWidth() + " height: " + code.getObjHeight());
+		System.out.println("nPoints: " + code.getNPoints());
+		System.out.println("length: " + code.getLength());
+		System.out.println("chain: " + code.getChain());
 	}
 }
