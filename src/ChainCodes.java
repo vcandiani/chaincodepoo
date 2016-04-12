@@ -14,7 +14,7 @@ import javax.imageio.ImageIO;
 public class ChainCodes{
 	private static int[] sumCol = {1, 1, 0, -1, -1, -1, 0, 1};
 	private static int[] sumRow = {0, 1, 1, 1, 0, -1, -1, -1};
-	private int initPoint;
+	private int[] initPoint;
 	private int objWidth;
 	private int objHeight;
 	private int imgHeight;
@@ -34,8 +34,8 @@ public class ChainCodes{
 		chain = new Vector<Integer>(0, 1);
 		imgMatrix = convertToMatrix(img);
 		length = 0;
-		int col = initPoint % imgWidth;
-		int row = (initPoint-col)/imgWidth;
+		int row = initPoint[0];
+		int col = initPoint[1];
 		int dir = 0;
 		do{
 			if(imgMatrix[row + sumRow[dir]][col + sumCol[dir]] < 255){
@@ -51,7 +51,7 @@ public class ChainCodes{
 			length += (dir%2 == 0)? 1 : Math.sqrt(2);
 			col += sumCol[dir];
 			row += sumRow[dir];
-		}while(((imgWidth * row) + col) != initPoint);
+		}while(row != initPoint[0] || col != initPoint[1]);
 		nPoints = chain.capacity();
 	}
 
@@ -78,7 +78,9 @@ public class ChainCodes{
 				if(matrix[row][col] < 255){
 					if(!found){
 						found = true;
-						initPoint = (imgWidth * row) + col;
+						initPoint = new int[2];
+						initPoint[0] = row;
+						initPoint[1] = col;
 					}
 					if(row < rowMin)
 						rowMin = row;
@@ -109,7 +111,7 @@ public class ChainCodes{
 		}
 	}
 
-	public int getInitPoint(){
+	public int[] getInitPoint(){
 		return initPoint;
 	}
 
@@ -153,7 +155,7 @@ public class ChainCodes{
 		System.out.println("obteve a imagem");
 
 		ChainCodes code = new ChainCodes(image);
-		System.out.println("initPoint: " + code.getInitPoint());
+		System.out.println("initPoint: " + code.getInitPoint()[1] + code.getInitPoint()[0]);
 		System.out.println("width: " + code.getObjWidth() + " height: " + code.getObjHeight());
 		System.out.println("nPoints: " + code.getNPoints());
 		System.out.println("length: " + code.getLength());
